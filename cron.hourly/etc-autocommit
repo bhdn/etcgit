@@ -1,0 +1,78 @@
+#!/usr/bin/python
+# 
+# Will add untracked files and commit the changed ones. It will try to
+# group the commits by package.
+#
+import sys
+import os
+import commands
+import rpm
+
+class Orphan: pass
+
+def cmd(cmd, error=False):
+    status, output = commands.getstatusoutput(cmd)
+    if status != 0 and error:
+        raise Exception, "%s failed: %s" % (cmd, output)
+    return output
+
+def rpmqf(path):
+    ts = rpm.ts()
+    found = list(ts.dbMatch("basenames", path))
+    if found:
+        return found[0]["name"]
+
+def changes():
+    cmd = "git-ls-files --deleted --modified --others --directory " \
+          "--exclude-per-directory=.gitignore"
+    io = os.popen(cmd)
+    for path in io:
+        path = path.rstrip()
+        if path:
+            yield path
+    io.close()
+
+def pkgchanges():
+    pkgs = {}
+    for path in changes():
+        pkgname = rpmqf(os.path.abspath(path)) or Orphan
+        pkgs.setdefault(pkgname, []).append(path)
+    return pkgs
+
+def logmsg(msg):
+    return "auto-commit: %s" % msg
+
+def scm(arg):
+    return cmd("git %s" % arg)
+
+def add(paths):
+    for path in paths:
+        # handle empty directories
+        if os.path.isdir(path) and not os.listdir(path):
+            dummy = os.path.join(path, ".was-empty")
+            open(dummy, "w+").close()
+            paths.append(dummy)
+    arg = " ".join(paths)
+    return scm("add %s" % arg)
+
+def commit(paths, msg):
+    msg = logmsg(msg)
+    arg = " ".join(paths)
+    return scm("commit -m \"%s\" %s" % (msg, arg))
+
+def commitpkgs():
+    changes = pkgchanges()
+    orphan = changes.pop(Orphan)
+    if orphan:
+        add(orphan)
+        commit(orphan, "orphan-files")
+    for pkg, paths in pkgchanges().iteritems():
+        add(paths)
+        commit(paths, "owned-by-package: %s" % pkg)
+
+if __name__ == "__main__":
+    os.environ["GIT_AUTHOR_NAME"] = "autocommit bot"
+    os.chdir("/etc")
+    commitpkgs()
+
+# vim:ts=4:sw=4:et

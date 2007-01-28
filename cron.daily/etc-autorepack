@@ -1,0 +1,4 @@
+#!/bin/sh
+#FIXME: support other directories than /etc/
+cd /etc
+git-repack -a -d

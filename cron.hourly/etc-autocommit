@@ -10,9 +10,9 @@ import rpm
 
 class Orphan: pass
 
-def cmd(cmd, error=False):
+def cmd(cmd, noerror=False):
     status, output = commands.getstatusoutput(cmd)
-    if status != 0 and error:
+    if status != 0 and not noerror: # argh!
         raise Exception, "%s failed: %s" % (cmd, output)
     return output
 
@@ -35,15 +35,14 @@ def changes():
 def pkgchanges():
     pkgs = {}
     for path in changes():
-        path = os.path.abspath(path)
-        pkgname = rpmqf(path)
+        abspath = os.path.abspath(path)
+        pkgname = rpmqf(abspath)
         rpmnew = ".rpmnew"
         if pkgname is None and path.endswith(rpmnew):
-            orig = path[:-len(rpmnew)]
+            orig = abspath[:-len(rpmnew)]
             if os.path.exists(orig):
-                pkgname = rpmqf(orig) or Orphan
-        else:
-            pkgname = Orphan
+                pkgname = rpmqf(orig)
+        pkgname = pkgname or Orphan
         pkgs.setdefault(pkgname, []).append(path)
     return pkgs
 
@@ -53,13 +52,31 @@ def logmsg(msg):
 def scm(arg):
     return cmd("git %s" % arg)
 
-def add(paths):
-    for path in paths:
-        # handle empty directories
-        if os.path.isdir(path) and not os.listdir(path):
+def fixtree(path):
+    "git 'as a content tracker' does not handle empty dirs"
+    dirt = False
+    for subname in os.listdir(path):
+        subpath = os.path.join(path, subname)
+        if os.path.isdir(subpath):
+            for found in fixtree(subpath):
+                yield found
+            else:
+                # this subtree contains a valid file
+                dirt = True
+        else:
+            break
+    else:
+        if not dirt:
             dummy = os.path.join(path, ".was-empty")
             open(dummy, "w+").close()
-            paths.append(dummy)
+            yield dummy
+
+def add(paths):
+    for path in paths[:]:
+        # handle empty directories
+        if os.path.isdir(path):
+            found = list(fixtree(path))
+            paths.extend(found)
     arg = " ".join(paths)
     return scm("add %s" % arg)
 
@@ -70,7 +87,7 @@ def commit(paths, msg):
 
 def commitpkgs():
     changes = pkgchanges()
-    orphan = changes.pop(Orphan)
+    orphan = changes.pop(Orphan, None)
     if orphan:
         add(orphan)
         commit(orphan, "orphan-files")

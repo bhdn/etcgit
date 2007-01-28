@@ -60,8 +60,6 @@ def fixtree(path):
         if os.path.isdir(subpath):
             for found in fixtree(subpath):
                 yield found
-            else:
-                # this subtree contains a valid file
                 dirt = True
         else:
             break

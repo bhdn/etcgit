@@ -12,7 +12,7 @@ Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 BuildArch: noarch
-Packager: Bogdano Arendartchuk <bogdano@mandriva.com.br>
+Packager: Bogdano Arendartchuk <debogdano@gmail.com>
 
 %description
 This stupid scripts will try to keep track of the changes using GIT

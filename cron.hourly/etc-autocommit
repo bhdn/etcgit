@@ -35,7 +35,15 @@ def changes():
 def pkgchanges():
     pkgs = {}
     for path in changes():
-        pkgname = rpmqf(os.path.abspath(path)) or Orphan
+        path = os.path.abspath(path)
+        pkgname = rpmqf(path)
+        rpmnew = ".rpmnew"
+        if pkgname is None and path.endswith(rpmnew):
+            orig = path[:-len(rpmnew)]
+            if os.path.exists(orig):
+                pkgname = rpmqf(orig) or Orphan
+        else:
+            pkgname = Orphan
         pkgs.setdefault(pkgname, []).append(path)
     return pkgs
 

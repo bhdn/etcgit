@@ -75,8 +75,7 @@ def add(paths):
     for path in paths[:]:
         # handle empty directories
         if os.path.isdir(path):
-            found = list(fixtree(path))
-            paths.extend(found)
+            paths.extend(fixtree(path))
     arg = " ".join(paths)
     return scm("add %s" % arg)
 

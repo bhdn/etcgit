@@ -22,10 +22,16 @@ import rpm
 
 class Orphan: pass
 
+class Error(Exception):
+    pass
+
+class CommandError(Error):
+    pass
+
 def cmd(cmd, noerror=False):
     status, output = commands.getstatusoutput(cmd)
     if status != 0 and not noerror: # argh!
-        raise Exception, "%s failed: %s" % (cmd, output)
+        raise CommandError, "%s failed: %s" % (cmd, output)
     return output
 
 def rpmqf(path):

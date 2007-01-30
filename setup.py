@@ -15,6 +15,7 @@ This stupid scripts will try to keep track of the changes using GIT
 It also makes separated changesets for each (RPM) package that owns the
 changed files.
 """,
+       packages = ["etcgit"],
        data_files=[
            ("/etc/cron.hourly", ["cron.hourly/etc-autocommit"]),
            ("/etc/cron.daily", ["cron.daily/etc-autorepack"],),

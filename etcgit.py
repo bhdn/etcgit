@@ -124,6 +124,7 @@ def commitpkgs():
     changes = pkgchanges()
     pkgs = changes[ByPackage]
     add(changes[Added])
+    orphan = pkgs.pop(Orphan)
     for pkg, paths in pkgs.iteritems():
         commit(paths, "owned-by-package: %s" % pkg)
     commit(None, "orphan-files")

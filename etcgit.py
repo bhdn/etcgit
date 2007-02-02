@@ -77,7 +77,9 @@ def pkgchanges():
             if os.path.exists(orig):
                 pkgname = rpmqf(orig)
         pkgname = pkgname or Orphan
-        pkgs.setdefault(pkgname, []).append(path)
+        paths = pkgs.setdefault(pkgname, [])
+        if path not in paths:
+            paths.append(path)
     changes[ByPackage] = pkgs
     return changes
 

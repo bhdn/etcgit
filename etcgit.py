@@ -123,11 +123,12 @@ def commit(paths, msg):
 def commitpkgs():
     changes = pkgchanges()
     pkgs = changes[ByPackage]
-    add(changes[Added])
-    orphan = pkgs.pop(Orphan)
-    for pkg, paths in pkgs.iteritems():
-        commit(paths, "owned-by-package: %s" % pkg)
-    commit(None, "orphan-files")
+    if pkgs:
+        add(changes[Added])
+        orphan = pkgs.pop(Orphan)
+        for pkg, paths in pkgs.iteritems():
+            commit(paths, "owned-by-package: %s" % pkg)
+        commit(None, "orphan-files")
 
 if __name__ == "__main__":
     os.environ["GIT_AUTHOR_NAME"] = "autocommit bot"

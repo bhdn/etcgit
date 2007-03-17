@@ -1,0 +1,8 @@
+*~
+*-
+*.cache
+*.lock
+.bzr
+.bzrignore
+mtab
+adjtime

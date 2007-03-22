@@ -1,3 +1,4 @@
 - make it track other directories than /etc/ (/usr/local/etc possibly)
 - stop all this waste of time and start to use cfengine, tripwire, or
-  anything better than it 
+  anything better than it
+- add it to gsoc!

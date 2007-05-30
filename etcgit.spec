@@ -15,8 +15,7 @@ BuildArch: noarch
 Packager: Bogdano Arendartchuk <debogdano@gmail.com>
 
 %description
-This stupid scripts will try to keep track of the changes using GIT
-(bzr is too heavy for my K6-II).
+This stupid scripts will try to keep track of the changes using GIT.
 
 It also makes separated changesets for each (RPM) package that owns the
 changed files.

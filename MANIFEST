@@ -3,4 +3,4 @@ cron.hourly/etc-autocommit
 cron.daily/etc-autorepack
 etcgit/__init__.py
 etcgit.py
-.gitignore
+exclude

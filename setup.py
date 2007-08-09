@@ -3,14 +3,13 @@
 from distutils.core import setup
 
 setup(name="etcgit",
-       version="0.07",
+       version="0.08",
        description="Small cron task to keep track of the changes in /etc",
        author="Bogdano Arendartchuk",
        author_email="bogdano@mandriva.com.br",
        license="GPL",
        long_description="""\
-This stupid scripts will try to keep track of the changes using GIT
-(bzr is too heavy for my K6-II).
+This stupid scripts will try to keep track of the changes using GIT.
 
 It also makes separated changesets for each (RPM) package that owns the
 changed files.

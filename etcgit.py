@@ -84,6 +84,10 @@ def pkgchanges():
     return changes
 
 def logmsg(msg):
+    msg = "auto-commit %s" % msg
+    user = os.environ.get("SUDO_USER")
+    if user:
+        msg += "\n\nCommiter: %s" % user
     return "auto-commit: %s" % msg
 
 def scm(arg):

@@ -107,6 +107,7 @@ def fixtree(path):
             yield dummy
 
 def add(paths):
+    paths = filter_ignored(paths)
     for path in paths[:]:
         # handle empty directories
         if os.path.isdir(path):
@@ -114,8 +115,18 @@ def add(paths):
     arg = " ".join(paths)
     return scm("add %s" % arg)
 
+def filter_ignored(paths):
+    # workaround against git behavior of complaining about the referring to
+    # ignored files in the command line
+    lines = list(cmdlines("git-ls-files --others --ignored "
+        "--exclude-from=.git/info/exclude"))
+    filtered = [path for path in paths if path not in lines]
+    return filtered
+
 def commit(paths, msg):
     msg = logmsg(msg)
+    if paths:
+        paths = filter_ignored(paths)
     if paths:
         arg = " ".join(paths)
     else:

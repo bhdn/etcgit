@@ -1,5 +1,5 @@
 %define name etcgit
-%define version 0.01
+%define version 0.09
 %define release 1
 
 Summary: Small cron task to keep track of the changes in /etc

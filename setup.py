@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name="etcgit",
-       version="0.10",
+       version="0.11",
        description="Small cron task to keep track of the changes in /etc",
        author="Bogdano Arendartchuk",
        author_email="bogdano@mandriva.com.br",

@@ -57,7 +57,7 @@ def cmdlines(cmd):
     return lines
     
 def getchanges():
-    basecmd = "git-ls-files --exclude-per-directory=.gitignore"
+    basecmd = "git ls-files --exclude-per-directory=.gitignore"
     changed = {}
     changed[Added] = cmdlines("%s --others --directory" % basecmd)
     changed[Modified] = cmdlines("%s --modified" % basecmd)
@@ -122,7 +122,7 @@ def add(paths):
 def filter_ignored(paths):
     # workaround against git behavior of complaining about the referring to
     # ignored files in the command line
-    lines = list(cmdlines("git-ls-files --others --ignored "
+    lines = list(cmdlines("git ls-files --others --ignored "
         "--exclude-from=.git/info/exclude"))
     filtered = [path for path in paths if path not in lines]
     return filtered

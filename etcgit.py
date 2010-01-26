@@ -161,7 +161,7 @@ def filter_ignored(paths):
     filtered = [path for path in paths if path not in ignored]
     return filtered, ignored
 
-def commit(paths, msg):
+def commit(paths, msg, pkg=None):
     msg = logmsg(msg)
     if paths:
         newpaths, ignored = filter_ignored(paths)
@@ -171,6 +171,8 @@ def commit(paths, msg):
         log.debug("about to commit: %s" % (newpaths))
         args = ["-m", msg]
         args.extend(newpaths)
+        if pkg:
+            log.info("commiting changes for %s" % (pkg))
         try:
             scm("commit", args)
         except CommandError, e:
@@ -188,8 +190,7 @@ def commitpkgs():
         add(changes[Added])
         orphan = pkgs.pop(Orphan)
         for pkg, paths in pkgs.iteritems():
-            log.info("commiting changes for %s" % (pkg))
-            commit(paths, "owned-by-package: %s" % (pkg))
+            commit(paths, "owned-by-package: %s" % (pkg), pkg=pkg)
         commit(None, "orphan-files")
     else:
         log.info("no changes commited")

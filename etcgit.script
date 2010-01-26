@@ -1,0 +1,3 @@
+#!/bin/sh
+cmd="$(cat /proc/$PPID/cmdline | xargs -0 echo)"
+ETCGIT_CHANGE_CONTEXT="$cmd" etcgit.py

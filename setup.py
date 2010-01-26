@@ -20,5 +20,7 @@ changed files.
            ("/etc/cron.hourly", ["cron.hourly/etc-autocommit"]),
            ("/etc/cron.daily", ["cron.daily/etc-autorepack"]),
            ("/usr/share/etcgit", ["exclude"]),
+           ("/var/lib/rpm/filetriggers", ["etcgit.filter",
+               "etcgit.script"]),
            ],
     )

@@ -38,10 +38,12 @@ class Error(Exception):
 
 class CommandError(Error):
     
-    def __init__(self, returncode, output):
+    def __init__(self, cmd, returncode, output):
+        self.cmd = cmd
         self.returncode = returncode
         self.output = output
-        self.args = (returncode, output)
+        msg = "%s failed (err %d): %s" % (cmd, returncode, output)
+        self.args = (msg,)
 
 def cmd(cmd, noerror=False):
     #status, output = commands.getstatusoutput(cmd)
@@ -53,9 +55,7 @@ def cmd(cmd, noerror=False):
     pipe.wait()
     output = pipe.stdout.read()
     if pipe.returncode != 0:
-        msg = "%s failed (err %d): %s" % (cmd, pipe.returncode, output)
-        log.error(msg)
-        raise CommandError(pipe.returncode, output)
+        raise CommandError(cmd, pipe.returncode, output)
     return output
 
 def rpmqf(path):
@@ -201,6 +201,9 @@ if __name__ == "__main__":
     etcdir = os.environ.get("ETCGIT_ETC", "/etc")
     log.debug("going to %s" % (etcdir))
     os.chdir(etcdir)
-    commitpkgs()
+    try:
+        commitpkgs()
+    except Error, e:
+        log.error("error: %s" % e)
 
 # vim:ts=4:sw=4:et

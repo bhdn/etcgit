@@ -104,6 +104,9 @@ def pkgchanges():
 
 def logmsg(msg):
     msg = "auto-commit %s" % msg
+    comment = os.environ.get("ETCGIT_CHANGE_CONTEXT")
+    if comment:
+        msg += "\n\nContext: %s" % (comment)
     user = os.environ.get("SUDO_USER")
     if user:
         msg += "\n\nCommiter: %s" % user

@@ -3,7 +3,7 @@
 # Will add untracked files and commit the changed ones. It will try to
 # group the commits by package.
 #
-# Copyright (C) 2007
+# Copyright (C) 2007 2008 2009
 #     Bogdano Arendartchuk <debogdano@gmail.com>
 #
 #  This program is free software; you can redistribute it and/or modify

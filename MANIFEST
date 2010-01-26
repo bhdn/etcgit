@@ -4,3 +4,5 @@ cron.daily/etc-autorepack
 etcgit/__init__.py
 etcgit.py
 exclude
+etcgit.filter
+etcgit.script

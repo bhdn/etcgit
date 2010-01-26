@@ -18,9 +18,14 @@
 import sys
 import os
 import commands
+import subprocess
 import rpm
+import logging
 
 from itertools import chain
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("etcgit")
 
 class Orphan: pass
 class Added: pass
@@ -32,12 +37,25 @@ class Error(Exception):
     pass
 
 class CommandError(Error):
-    pass
+    
+    def __init__(self, returncode, output):
+        self.returncode = returncode
+        self.output = output
+        self.args = (returncode, output)
 
 def cmd(cmd, noerror=False):
-    status, output = commands.getstatusoutput(cmd)
-    if status != 0 and not noerror: # argh!
-        raise CommandError, "%s failed: %s" % (cmd, output)
+    #status, output = commands.getstatusoutput(cmd)
+    #if status != 0 and not noerror: # argh!
+    #    raise CommandError, "%s failed: %s" % (cmd, output)
+    log.debug("about to run: %s" % (cmd))
+    pipe = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+    pipe.wait()
+    output = pipe.stdout.read()
+    if pipe.returncode != 0:
+        msg = "%s failed (err %d): %s" % (cmd, pipe.returncode, output)
+        log.error(msg)
+        raise CommandError(pipe.returncode, output)
     return output
 
 def rpmqf(path):
@@ -47,6 +65,7 @@ def rpmqf(path):
         return found[0]["name"]
 
 def cmdlines(cmd):
+    log.debug("about to run (cmdlines): %s" % (cmd))
     lines = []
     io = os.popen(cmd)
     for line in io:
@@ -90,18 +109,23 @@ def logmsg(msg):
         msg += "\n\nCommiter: %s" % user
     return "auto-commit: %s" % msg
 
-def scm(arg):
-    return cmd("git %s" % arg)
+def scm(name, args=[]):
+    cmdargs = ["git", name]
+    cmdargs.extend(args)
+    cmd(cmdargs)
 
-def fixtree(path):
+def fixtree(path, ignored):
     "git 'as a content tracker' does not handle empty dirs"
     dirt = False
     for subname in os.listdir(path):
         subpath = os.path.join(path, subname)
+        if subpath in ignored:
+            continue
         if os.path.islink(subpath):
-            yield found
+            yield subpath
+            dirt = True
         elif os.path.isdir(subpath):
-            for found in fixtree(subpath):
+            for found in fixtree(subpath, ignored):
                 yield found
                 dirt = True
         else:
@@ -113,31 +137,46 @@ def fixtree(path):
             yield dummy
 
 def add(paths):
-    paths = filter_ignored(paths)
+    paths, ignored = filter_ignored(paths)
     for path in paths[:]:
         # handle empty directories
-        if os.path.isdir(path):
-            paths.extend(fixtree(path))
-    arg = " ".join(paths)
-    return scm("add %s" % arg)
+        if os.path.islink(path):
+            paths.append(path)
+        elif os.path.isdir(path):
+            paths.extend(fixtree(path, ignored))
+    return scm("add", paths)
+
+def get_ignored():
+    lines = list(cmdlines("git ls-files --others --ignored "
+        "--exclude-from=.git/info/exclude"))
+    return lines
 
 def filter_ignored(paths):
     # workaround against git behavior of complaining about the referring to
     # ignored files in the command line
-    lines = list(cmdlines("git ls-files --others --ignored "
-        "--exclude-from=.git/info/exclude"))
-    filtered = [path for path in paths if path not in lines]
-    return filtered
+    ignored = get_ignored()
+    filtered = [path for path in paths if path not in ignored]
+    return filtered, ignored
 
 def commit(paths, msg):
     msg = logmsg(msg)
     if paths:
-        paths = filter_ignored(paths)
-    if paths:
-        arg = " ".join(paths)
+        newpaths, ignored = filter_ignored(paths)
+    elif paths is None:
+        newpaths = ["-a"]
+    if newpaths:
+        log.debug("about to commit: %s" % (newpaths))
+        args = ["-m", msg]
+        args.extend(newpaths)
+        try:
+            scm("commit", args)
+        except CommandError, e:
+            if "nothing to commit" in e.output and paths is None:
+                log.debug("no orphan stuff to commit")
+            else:
+                raise
     else:
-        arg = "-a"
-    return scm("commit -m \"%s\" %s" % (msg, arg))
+        log.debug("actually, nothing to commit")
 
 def commitpkgs():
     changes = pkgchanges()
@@ -146,12 +185,19 @@ def commitpkgs():
         add(changes[Added])
         orphan = pkgs.pop(Orphan)
         for pkg, paths in pkgs.iteritems():
-            commit(paths, "owned-by-package: %s" % pkg)
+            log.info("commiting changes for %s" % (pkg))
+            commit(paths, "owned-by-package: %s" % (pkg))
         commit(None, "orphan-files")
+    else:
+        log.info("no changes commited")
 
 if __name__ == "__main__":
     os.environ["GIT_AUTHOR_NAME"] = "autocommit bot"
-    os.chdir("/etc")
+    if os.environ.get("ETCGIT_DEBUG"):
+        log.setLevel(logging.DEBUG)
+    etcdir = os.environ.get("ETCGIT_ETC", "/etc")
+    log.debug("going to %s" % (etcdir))
+    os.chdir(etcdir)
     commitpkgs()
 
 # vim:ts=4:sw=4:et

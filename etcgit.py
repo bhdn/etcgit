@@ -98,7 +98,9 @@ def fixtree(path):
     dirt = False
     for subname in os.listdir(path):
         subpath = os.path.join(path, subname)
-        if os.path.isdir(subpath):
+        if os.path.islink(subpath):
+            yield found
+        elif os.path.isdir(subpath):
             for found in fixtree(subpath):
                 yield found
                 dirt = True

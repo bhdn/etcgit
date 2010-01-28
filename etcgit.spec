@@ -33,7 +33,7 @@ python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 %post
 if [ ! -d /etc/.git ]; then
   cd /etc/
-  git-init-db
+  git init-db
   chmod 700 .git
   echo "created git database"
 fi;

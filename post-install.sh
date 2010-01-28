@@ -4,7 +4,7 @@ exclude=/usr/share/etcgit/exclude
 for dir in $dirs; do
   if [ ! -d $dir/.git ]; then
     cd $dir
-    git-init-db
+    git init-db
     mkdir -p .git/info
     cp /usr/share/etcgit/exclude .git/info/exclude
     git-add .

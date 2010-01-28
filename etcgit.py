@@ -62,7 +62,11 @@ def rpmqf(path):
     ts = rpm.ts()
     found = list(ts.dbMatch("basenames", path))
     if found:
-        return found[0]["name"]
+        name = (found[0]["name"]
+                + "-" + (found[0]["version"] or "")
+                + "-" + (found[0]["release"] or ""))
+        print "returning", name
+        return name
 
 def cmdlines(cmd):
     log.debug("about to run (cmdlines): %s" % (cmd))

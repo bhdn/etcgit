@@ -6,3 +6,4 @@
 .bzrignore
 mtab
 adjtime
+ld.so.cache

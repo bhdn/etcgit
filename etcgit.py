@@ -65,7 +65,6 @@ def rpmqf(path):
         name = (found[0]["name"]
                 + "-" + (found[0]["version"] or "")
                 + "-" + (found[0]["release"] or ""))
-        print "returning", name
         return name
 
 def cmdlines(cmd):

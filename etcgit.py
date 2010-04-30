@@ -21,6 +21,7 @@ import commands
 import subprocess
 import rpm
 import logging
+import tempfile
 
 from itertools import chain
 
@@ -34,6 +35,9 @@ class Modified: pass
 class ByPackage: pass
 
 class Error(Exception):
+    pass
+
+class FileFormatError(Error):
     pass
 
 class CommandError(Error):
@@ -83,7 +87,7 @@ def getchanges():
     changed = {}
     changed[Added] = cmdlines("%s --others --directory" % basecmd)
     changed[Modified] = cmdlines("%s --modified" % basecmd)
-    changed[Deleted] = cmdlines("%s --deleted" % basecmd)
+    changed[Deleted] = list(cmdlines("%s --deleted" % basecmd))
     return changed
     
 def pkgchanges():
@@ -164,13 +168,86 @@ def filter_ignored(paths):
     filtered = [path for path in paths if path not in ignored]
     return filtered, ignored
 
-def commit(paths, msg, pkg=None):
+def load_database():
+    files = {}
+    if not os.path.exists(".files"):
+        return files
+    for line in open(".files"):
+        line = line.lstrip()
+        if line.endswith("\n"):
+            line = line[:-1]
+        if not line:
+            continue
+        try:
+            rawmode, rawuid, rawgid, rawpath = line.split(None, 3)
+        except ValueError:
+            raise FileFormatError, "bad format for .files"
+        files[rawpath] = int(rawmode), int(rawuid), int(rawgid), rawpath
+    return files
+
+def save_database(entries):
+    tmp = tempfile.NamedTemporaryFile(dir=".git", delete=False)
+    log.debug("writing to %s" % (tmp.name))
+    tosort = [(entry[-1], entry) for entry in entries.itervalues()]
+    for _, entry in sorted(tosort):
+        mode, uid, gid, path = entry
+        tmp.write("%s %s %s %s\n" % (mode, uid, gid, path))
+    tmp.flush()
+    log.debug("moved %s to .files" % (tmp.name))
+    os.chmod(tmp.name, 0600)
+    os.rename(tmp.name, ".files")
+    tmp.close()
+
+def repr_mode(st_mode):
+    return oct(st_mode)
+
+def update_metadata_changes(deleted):
+    log.debug("updating metadata changes")
+    entries = load_database()
+    newentries = {}
+    for path in cmdlines("git ls-files -c"):
+        st = os.lstat(path)
+        newentries[path] = (repr_mode(st.st_mode), st.st_uid, st.st_gid, path)
+    for path in deleted:
+        newentries.pop(path, None)
+    save_database(newentries)
+
+def update_database(paths):
+    log.debug("updating metadata database for %s" % (", ".join(paths)))
+    entries = load_database()
+    for path in paths:
+        if os.path.islink(path):
+            continue
+        st = os.lstat(path)
+        entries[path] = (repr_mode(st.st_mode), st.st_uid, st.st_gid, path)
+    save_database(entries)
+
+def delete_from_database(paths):
+    log.debug("deleting removed entries from database: %s" %
+            (", ".join(paths)))
+    entries = load_database()
+    for path in paths:
+        entries.pop(path, None)
+    save_database(entries)
+
+def create_database():
+    paths = cmdlines("git ls-files")
+    update_database(paths)
+    scm("add", [".files"])
+
+def commit(paths, msg, all=False, deleted=None, pkg=None):
     msg = logmsg(msg)
     if paths:
         newpaths, ignored = filter_ignored(paths)
-    elif paths is None:
+    elif all:
         newpaths = ["-a"]
     if newpaths:
+        log.debug("adding files to file database")
+        if all:
+            update_metadata_changes(deleted)
+            delete_from_database(deleted)
+        else:
+            update_database(newpaths)
         log.debug("about to commit: %s" % (newpaths))
         args = ["-m", msg]
         args.extend(newpaths)
@@ -187,6 +264,8 @@ def commit(paths, msg, pkg=None):
         log.debug("actually, nothing to commit")
 
 def commitpkgs():
+    if not os.path.exists(".files"):
+        create_database()
     changes = pkgchanges()
     pkgs = changes[ByPackage]
     if pkgs:
@@ -194,7 +273,7 @@ def commitpkgs():
         orphan = pkgs.pop(Orphan)
         for pkg, paths in pkgs.iteritems():
             commit(paths, "owned-by-package: %s" % (pkg), pkg=pkg)
-        commit(None, "orphan-files")
+        commit(None, "orphan-files", all=True, deleted=changes[Deleted])
     else:
         log.info("no changes commited")
 
